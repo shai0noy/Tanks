@@ -1,0 +1,132 @@
+using UnityEngine;
+using System.Collections;
+
+
+[RequireComponent(typeof(MeshFilter))]
+[RequireComponent(typeof(MeshRenderer))]
+[RequireComponent(typeof(EdgeCollider2D))]
+
+public class SurfaceManager : MonoBehaviour {
+
+	public Texture2D BaseTexture;
+	public Color InnerColor;
+
+	public int numSurfacePoints = 150;
+	public float surfaceWidth = 150;
+	
+	public float surfaceSpread = 1.5f;
+	
+	Vector2[] surfaceOriginal;
+	Vector2[] surfaceCurrnet;
+
+
+
+	int depth = 50;
+
+	int[] depthZs = {50,10,6,3,-3,-6,-10,-50};
+	int[] depthHeightDeltas = {0,0,0,0,0,0,0,0};
+	float[] modEffect = {0,0,0,1,1,0.5f,0.25f,0};
+
+
+	// Use this for initialization
+	void Start () {	
+
+		buildSurface();
+		buildMesh();	
+	}
+	
+
+	public void explodeAt(Vector2 point, float radius) {
+		for (int i = 0; i < numSurfacePoints; i++) {
+			Vector2 delta = point - surfaceCurrnet[i];
+			if (delta.magnitude < radius) {
+				float newY = -Mathf.Sqrt( Mathf.Pow(radius,2) - Mathf.Pow(surfaceCurrnet[i].x, 2) + 2 * surfaceCurrnet[i].x * point.x - Mathf.Pow(point.x, 2) ) - Mathf.Abs(point.y);
+				if (newY < surfaceCurrnet[i].y) {
+					surfaceCurrnet[i].y = newY;
+				
+				}
+			}
+		}
+		buildMesh(); //Should be more efficient
+	}
+
+	
+	void buildSurface() {
+		surfaceOriginal = new Vector2[numSurfacePoints];
+		surfaceCurrnet = new Vector2[numSurfacePoints];
+
+		float surfaceXStep = surfaceWidth / numSurfacePoints;
+		float surfaceXStart = -surfaceWidth / 2;
+
+		for (int i = 0; i < numSurfacePoints; i++) {
+			surfaceOriginal[i] = new Vector2(surfaceXStart + (i * surfaceXStep), Random.Range(0f, 1f));
+			surfaceCurrnet[i] = surfaceOriginal[i];
+		}
+
+	}
+
+	void buildMesh() {
+
+		float surfaceSpreadPerDepthUnit = (surfaceSpread -1f) / depthZs[0];
+
+
+		int depthSteps = depthZs.Length;
+		
+		int numVerts = numSurfacePoints * depthSteps;
+		Vector3[] verts = new Vector3[numVerts];
+		Vector2[] uv = new Vector2[numVerts];
+
+
+		int baseVert;
+		int iVert;
+		for (int iSurface = 0; iSurface < numSurfacePoints; iSurface++) {
+			baseVert = iSurface * depthSteps;
+			for (int iDepth = 0; iDepth < depthSteps; iDepth++) {
+				iVert = baseVert + iDepth;
+				Vector2 suracePoint = surfaceCurrnet[iSurface] * modEffect[iDepth] + surfaceOriginal[iSurface] * (1-modEffect[iDepth]);
+				verts[iVert] = new Vector3(suracePoint.x * (1 + surfaceSpreadPerDepthUnit * depthZs[iDepth]), suracePoint.y + depthHeightDeltas[iDepth], depthZs[iDepth]);
+				uv[iVert] = new Vector2(iSurface/(numSurfacePoints-1f), 0f);
+			}
+		}
+		
+		int numTriangles = (numSurfacePoints - 1) * (depthSteps - 1) * 2;
+		int[] triangles = new int[numTriangles * 3];
+		
+		int iTriangle = 0;
+		for (int iSurface = 0; iSurface < numSurfacePoints - 1; iSurface++) {
+			for (int iDepth = 0; iDepth < depthSteps - 1; iDepth++) {
+				
+				triangles[iTriangle + 0] = iSurface * depthSteps + iDepth;
+				triangles[iTriangle + 1] = (iSurface + 1) * depthSteps + iDepth;
+				triangles[iTriangle + 2] = iSurface * depthSteps + (iDepth + 1);
+				
+				triangles[iTriangle + 3] = (iSurface + 1) * depthSteps + (iDepth + 1);
+				triangles[iTriangle + 4] = iSurface * depthSteps + (iDepth + 1);
+				triangles[iTriangle + 5] = (iSurface + 1) * depthSteps + iDepth;
+				
+				iTriangle += 6;
+			}
+		}
+		
+		/* Set Mesh */		
+		
+		Mesh mesh = new Mesh();
+		mesh.vertices = verts;
+		mesh.triangles = triangles;
+		mesh.RecalculateNormals();
+		mesh.uv = uv;
+			
+		MeshFilter meshFilter = GetComponent<MeshFilter>();
+		meshFilter.mesh = mesh;
+
+		EdgeCollider2D collider = GetComponent<EdgeCollider2D>();
+		collider.points = surfaceCurrnet;
+
+		/* Set Texture */
+		//MeshRenderer renderer = GetComponent<MeshRenderer>();
+		//renderer.material.SetTexture(texture);
+
+	}
+	
+
+}
