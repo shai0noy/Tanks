@@ -10,12 +10,12 @@ public class Bomb : MonoBehaviour {
 
 	public int groundRemoveRadius = 5;
 
-	TerrainManager terrainManager;
+	SurfaceManager terrainManager;
 
 	// Use this for initialization
 	void Awake () {
 		GameObject terrain = GameObject.Find("Terrain");
-		terrainManager = terrain.GetComponent<TerrainManager>();
+		terrainManager = terrain.GetComponent<SurfaceManager>();
 	}
 	
 	// Update is called once per frame

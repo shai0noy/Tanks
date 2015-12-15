@@ -20,6 +20,10 @@ public class TerrainManager : MonoBehaviour {
 
 	private int heightmapVOfGameSection;
 
+
+    public bool renderXray;
+
+
 	/****************/
 	
 

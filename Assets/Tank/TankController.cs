@@ -14,7 +14,7 @@ public class TankController : TakesDamage {
 	public float baseArmor = 100;
 	public float armor;
 
-	public float baseMaxShotPower = 20;
+	public float baseMaxShotPower = 200;
 	public float maxShotPower;
 	private float _shotPower = 10;
 	public float shotPower {
@@ -57,14 +57,14 @@ public class TankController : TakesDamage {
 
 	public float mass
 	{
-		get { return rigidbody2D.mass; }
-		set { rigidbody2D.mass = value; }
+		get { return GetComponent<Rigidbody2D>().mass; }
+		set { GetComponent<Rigidbody2D>().mass = value; }
 	}
 
 	public float centerOfMassHeight 
 	{
-		get { return rigidbody2D.centerOfMass.y; }
-		set { rigidbody2D.centerOfMass = new Vector2(0, value); }
+		get { return GetComponent<Rigidbody2D>().centerOfMass.y; }
+		set { GetComponent<Rigidbody2D>().centerOfMass = new Vector2(0, value); }
 	}
 
 
@@ -105,7 +105,7 @@ public class TankController : TakesDamage {
 	}
 	
 	public override void takeBlastPush(Vector2 force) {
-		rigidbody2D.AddForce (force, ForceMode2D.Impulse);
+		GetComponent<Rigidbody2D>().AddForce (force, ForceMode2D.Impulse);
 	}
 	
 	public override void takeBlastDamage(float damage) {
@@ -116,7 +116,7 @@ public class TankController : TakesDamage {
 
 	private void shoot() {
 		Bomb missile = Instantiate(missiles[selectedMissileIndex], transform.position + Vector3.up*2f, Quaternion.Euler (0,0,aimAngle)) as Bomb;
-		missile.rigidbody2D.AddRelativeForce(_shotPower * Vector2.up, ForceMode2D.Impulse);
+		missile.GetComponent<Rigidbody2D>().AddRelativeForce(_shotPower * Vector2.up, ForceMode2D.Impulse);
 	}
 
 
@@ -125,8 +125,8 @@ public class TankController : TakesDamage {
 
 	// Use this for initialization
 	void Start () {
-		idleSmokeEmitter = GameObject.Find("IdleSmoke").particleEmitter;
-		driveSmokeEmitter = GameObject.Find("DrivingSmoke").particleEmitter;
+		idleSmokeEmitter = GameObject.Find("IdleSmoke").GetComponent<ParticleEmitter>();
+		driveSmokeEmitter = GameObject.Find("DrivingSmoke").GetComponent<ParticleEmitter>();
 		centerOfMassHeight = 0.1f;
 	}
 
@@ -137,7 +137,7 @@ public class TankController : TakesDamage {
 
 		float power = Input.GetAxis ("Horizontal") * enginePower;
 		if (treads.isGrounded) {
-			rigidbody2D.AddForce (transform.right * power);
+			GetComponent<Rigidbody2D>().AddForce (transform.right * power);
 		}
 		if (power == 0) {
 			setSmoke(SmokeStrength.idle);
