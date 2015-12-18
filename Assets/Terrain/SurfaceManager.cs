@@ -10,15 +10,23 @@ public class SurfaceManager : MonoBehaviour {
 
 	public Texture2D BaseTexture;
 	public Color InnerColor;
+	
+	public float groundRemoveDepthRatio = 0.4f;
 
 	public int numSurfacePoints = 150;
 	public float surfaceWidth = 150;
 	
 	public float surfaceSpread = 1.5f;
-	
+
+    public float surfaceSeed;
+    public float surfaceFreq = 25f;
+    public float surfaceMinY = -1.5f;
+    public float surfaceMaxY = 2.5f;
+
+
+
 	Vector2[] surfaceOriginal;
 	Vector2[] surfaceCurrnet;
-
 
 
 	int depth = 50;
@@ -40,7 +48,8 @@ public class SurfaceManager : MonoBehaviour {
 		for (int i = 0; i < numSurfacePoints; i++) {
 			Vector2 delta = point - surfaceCurrnet[i];
 			if (delta.magnitude < radius) {
-				float newY = -Mathf.Sqrt( Mathf.Pow(radius,2) - Mathf.Pow(surfaceCurrnet[i].x, 2) + 2 * surfaceCurrnet[i].x * point.x - Mathf.Pow(point.x, 2) ) - Mathf.Abs(point.y);
+				float newY = -Mathf.Sqrt( Mathf.Pow(radius,2) - Mathf.Pow(surfaceCurrnet[i].x, 2) +
+						2 * surfaceCurrnet[i].x * point.x - Mathf.Pow(point.x, 2) ) * groundRemoveDepthRatio - Mathf.Abs(point.y);
 				if (newY < surfaceCurrnet[i].y) {
 					surfaceCurrnet[i].y = newY;
 				
@@ -58,8 +67,13 @@ public class SurfaceManager : MonoBehaviour {
 		float surfaceXStep = surfaceWidth / numSurfacePoints;
 		float surfaceXStart = -surfaceWidth / 2;
 
+        float perlinStart = surfaceSeed * 10;
+        float perlinStep = surfaceFreq / numSurfacePoints;
+        float surfaceMaxDelta = surfaceMaxY - surfaceMinY;
+
 		for (int i = 0; i < numSurfacePoints; i++) {
-			surfaceOriginal[i] = new Vector2(surfaceXStart + (i * surfaceXStep), Random.Range(0f, 1f));
+            float y = Mathf.PerlinNoise(perlinStart, perlinStart + i * perlinStep) * surfaceMaxDelta + surfaceMinY;
+            surfaceOriginal[i] = new Vector2(surfaceXStart + (i * surfaceXStep), y);
 			surfaceCurrnet[i] = surfaceOriginal[i];
 		}
 

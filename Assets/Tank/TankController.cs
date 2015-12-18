@@ -14,7 +14,7 @@ public class TankController : TakesDamage {
 	public float baseArmor = 100;
 	public float armor;
 
-	public float baseMaxShotPower = 200;
+	public float baseMaxShotPower = 20;
 	public float maxShotPower;
 	private float _shotPower = 10;
 	public float shotPower {
@@ -41,7 +41,7 @@ public class TankController : TakesDamage {
 	public Bomb[] missiles;
 	public int selectedMissileIndex;
 
-
+    private CameraManager camManager;
 
 	private enum SmokeStrength {
 		none,
@@ -115,8 +115,12 @@ public class TankController : TakesDamage {
 	/* --- Behaviour - Active --- */
 
 	private void shoot() {
-		Bomb missile = Instantiate(missiles[selectedMissileIndex], transform.position + Vector3.up*2f, Quaternion.Euler (0,0,aimAngle)) as Bomb;
+        Quaternion aimRotation = Quaternion.Euler (0,0,aimAngle);
+        Bomb missile = Instantiate(missiles[selectedMissileIndex], transform.position + aimRotation * Vector3.up * 2f, aimRotation) as Bomb;
 		missile.GetComponent<Rigidbody2D>().AddRelativeForce(_shotPower * Vector2.up, ForceMode2D.Impulse);
+        cannon.startShotEffect();
+        // Set camera to folloe missile.
+        camManager.mainTarget = missile.gameObject;
 	}
 
 
@@ -127,6 +131,7 @@ public class TankController : TakesDamage {
 	void Start () {
 		idleSmokeEmitter = GameObject.Find("IdleSmoke").GetComponent<ParticleEmitter>();
 		driveSmokeEmitter = GameObject.Find("DrivingSmoke").GetComponent<ParticleEmitter>();
+        camManager = Camera.main.GetComponent<CameraManager>();
 		centerOfMassHeight = 0.1f;
 	}
 
