@@ -8,7 +8,8 @@ using System.Collections;
 
 public class SurfaceManager : MonoBehaviour {
 
-	public Texture2D BaseTexture;
+    public int overlayResolution = 1000;
+    private Texture2D overlayTexture;
 	public Color InnerColor;
 	
 	public float groundRemoveDepthRatio = 0.4f;
@@ -29,16 +30,18 @@ public class SurfaceManager : MonoBehaviour {
 	Vector2[] surfaceCurrnet;
 
 
-	int depth = 50;
+	int[] depthZs =         {50, 30, 10,    8,     6,     5,     3,    0,  0,  -3,      -5,      -6,   -8,   -10,  -30, -50};
+    float[] modEffect =   {0,   0,    0,   0.1f,  0.2f, 0.5f, 0.8f,  1, 1,  0.8f,   0.5f,    0.2f,  0.1f,   0,     0,     0 };
+	int[] depthHeightDeltas = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
 
-	int[] depthZs = {50,10,6,3,-3,-6,-10,-50};
-	int[] depthHeightDeltas = {0,0,0,0,0,0,0,0};
-	float[] modEffect = {0,0,0,1,1,0.5f,0.25f,0};
-
-
-	// Use this for initialization
+    int depth;
+    float aspectRatio;
+    
+    // Use this for initialization
 	void Start () {	
-
+        depth = depthZs[0] - depthZs[depthZs.Length-1]; 
+        aspectRatio = depth / surfaceWidth;
+        overlayTexture = new Texture2D(overlayResolution, (int)aspectRatio * overlayResolution);
 		buildSurface();
 		buildMesh();	
 	}
@@ -51,11 +54,11 @@ public class SurfaceManager : MonoBehaviour {
 				float newY = -Mathf.Sqrt( Mathf.Pow(radius,2) - Mathf.Pow(surfaceCurrnet[i].x, 2) +
 						2 * surfaceCurrnet[i].x * point.x - Mathf.Pow(point.x, 2) ) * groundRemoveDepthRatio - Mathf.Abs(point.y);
 				if (newY < surfaceCurrnet[i].y) {
-					surfaceCurrnet[i].y = newY;
-				
+					surfaceCurrnet[i].y = newY;	
 				}
 			}
 		}
+
 		buildMesh(); //Should be more efficient
 	}
 
@@ -99,7 +102,7 @@ public class SurfaceManager : MonoBehaviour {
 				iVert = baseVert + iDepth;
 				Vector2 suracePoint = surfaceCurrnet[iSurface] * modEffect[iDepth] + surfaceOriginal[iSurface] * (1-modEffect[iDepth]);
 				verts[iVert] = new Vector3(suracePoint.x * (1 + surfaceSpreadPerDepthUnit * depthZs[iDepth]), suracePoint.y + depthHeightDeltas[iDepth], depthZs[iDepth]);
-				uv[iVert] = new Vector2(iSurface/(numSurfacePoints-1f), 0f);
+                uv[iVert] = new Vector2(verts[iVert].x, verts[iVert].z);
 			}
 		}
 		
@@ -137,9 +140,8 @@ public class SurfaceManager : MonoBehaviour {
 		collider.points = surfaceCurrnet;
 
 		/* Set Texture */
-		//MeshRenderer renderer = GetComponent<MeshRenderer>();
-		//renderer.material.SetTexture(texture);
-
+		MeshRenderer renderer = GetComponent<MeshRenderer>();
+        renderer.material.SetTexture(1, overlayTexture);
 	}
 	
 

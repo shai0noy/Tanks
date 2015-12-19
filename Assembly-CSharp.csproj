@@ -46,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
      <Compile Include="Assets\Bomb.cs" />
+     <Compile Include="Assets\GameManager.cs" />
      <Compile Include="Assets\Gfx\Camera\CameraManager.cs" />
      <Compile Include="Assets\Shaders\EdgeDetectionColor.cs" />
      <Compile Include="Assets\Shaders\EdgeDetectionColorsEditor.cs" />
