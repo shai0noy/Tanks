@@ -51,8 +51,8 @@ public class TankController : TakesDamage {
 	private ParticleEmitter idleSmokeEmitter;
 	private ParticleEmitter driveSmokeEmitter;
 	private void setSmoke(SmokeStrength strength) {
-		idleSmokeEmitter.emit = strength == SmokeStrength.idle;
-		driveSmokeEmitter.emit = strength == SmokeStrength.drive;
+		idleSmokeEmitter.emit = (strength == SmokeStrength.idle);
+		driveSmokeEmitter.emit = (strength == SmokeStrength.drive);
 	}
 
 	public float mass
@@ -66,6 +66,12 @@ public class TankController : TakesDamage {
 		get { return GetComponent<Rigidbody2D>().centerOfMass.y; }
 		set { GetComponent<Rigidbody2D>().centerOfMass = new Vector2(0, value); }
 	}
+
+
+    public bool isActive {
+        get;
+        private set;
+    }
 
 
 	public TankController() {
@@ -84,13 +90,13 @@ public class TankController : TakesDamage {
 
 	private void takeDamage(float damage) {
 		//First, armor takes some of the damage
-		float armorAbsorb = Mathf.Min (1f, armor / baseArmor) * damage;
+		float armorAbsorb = Mathf.Min(1f, armor / baseArmor) * damage;
 		armor -= armorAbsorb;
 		if (armor <= 0) {
 			armor=0;
 			die();
 		}
-		// Rest of damage is randomly ditributed between engine, fuel tank and cannon
+		// Rest of damage is randomly distributed between engine, fuel tank and cannon
 		damage -= armorAbsorb;
 		//TODO: This should be random:
 		enginePower -= damage / 3;
@@ -101,7 +107,7 @@ public class TankController : TakesDamage {
 
 	// implement TakesDamage
 	public override void hit (float damage) {
-		takeDamage (damage);
+		takeDamage(damage);
 	}
 	
 	public override void takeBlastPush(Vector2 force) {
@@ -118,49 +124,60 @@ public class TankController : TakesDamage {
         Quaternion aimRotation = Quaternion.Euler (0,0,aimAngle);
         Bomb missile = Instantiate(missiles[selectedMissileIndex], transform.position + aimRotation * Vector3.up * 2f, aimRotation) as Bomb;
 		missile.GetComponent<Rigidbody2D>().AddRelativeForce(_shotPower * Vector2.up, ForceMode2D.Impulse);
-        cannon.startShotEffect();
+        cannon.shotEffect();
         // Set camera to folloe missile.
         camManager.mainTarget = missile.gameObject;
 	}
+    public void Activate() {
+        isActive = true;
+        
+    }
+    public void Deactivate() {
+          isActive = false;
+          setSmoke(SmokeStrength.none); //Maybe idle smoke?
+    }
 
 
-	/* --- User Control --- */
 
+
+    // Use this to find objects
+    void Awake() {
+        idleSmokeEmitter = transform.Find("IdleSmoke").GetComponent<ParticleEmitter>();
+        driveSmokeEmitter = transform.Find("DrivingSmoke").GetComponent<ParticleEmitter>();
+        camManager = Camera.main.GetComponent<CameraManager>();
+    }
 
 	// Use this for initialization
 	void Start () {
-		idleSmokeEmitter = GameObject.Find("IdleSmoke").GetComponent<ParticleEmitter>();
-		driveSmokeEmitter = GameObject.Find("DrivingSmoke").GetComponent<ParticleEmitter>();
-        camManager = Camera.main.GetComponent<CameraManager>();
 		centerOfMassHeight = 0.1f;
 	}
 
 
 	void FixedUpdate () {
+        if (isActive) {
+		    /* Drive */
 
-		/* Drive */
+		    float power = Input.GetAxis ("Horizontal") * enginePower;
+		    if (treads.isGrounded) {
+			    GetComponent<Rigidbody2D>().AddForce (transform.right * power);
+		    }
+		    if (power == 0) {
+			    setSmoke(SmokeStrength.idle);
+		    } else {
+			    setSmoke(SmokeStrength.drive);
+		    }
 
-		float power = Input.GetAxis ("Horizontal") * enginePower;
-		if (treads.isGrounded) {
-			GetComponent<Rigidbody2D>().AddForce (transform.right * power);
-		}
-		if (power == 0) {
-			setSmoke(SmokeStrength.idle);
-		} else {
-			setSmoke(SmokeStrength.drive);
-		}
+		    /* Aim */
 
-		/* Aim */
+		    float aimDelta = Input.GetAxis ("Vertical") * aimSpeed;
+		    aimAngle = Mathf.Clamp(aimAngle + aimDelta, -90, 90);
 
-		float aimDelta = Input.GetAxis ("Vertical") * aimSpeed;
-		aimAngle = Mathf.Clamp(aimAngle + aimDelta, -90, 90);
+		    /* Shoot */
 
-		/* Shoot */
-
-		if (Input.GetKeyDown("space")) {
-			shoot();
-		}
-
+		    if (Input.GetKeyDown("space")) {
+			    shoot();
+		    }
+        }
 	}
 
 
@@ -168,4 +185,5 @@ public class TankController : TakesDamage {
 	void Update () {
 	
 	}
+
 }

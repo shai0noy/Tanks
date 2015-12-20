@@ -10,7 +10,7 @@ public class Bomb : MonoBehaviour {
 
 	public int groundRemoveRadius = 5;
 
-    public int timeToLive = 20;
+    public int timeToLive = 10;
 
 	SurfaceManager terrainManager;
 

@@ -6,9 +6,13 @@ public class CannonManager : MonoBehaviour {
     public int explosionSize = 15;
     private ParticleEmitter explosion;
 
+    // Use this to find objects
+    void Awake() {
+        explosion = transform.Find("Explosion").GetComponent<ParticleEmitter>();
+    }
+
 	// Use this for initialization
-	void Start () {
-        explosion = GameObject.Find("Explosion").GetComponent<ParticleEmitter>();
+	void Start () {   
         explosion.emit = false;
 	}
 	
@@ -17,7 +21,7 @@ public class CannonManager : MonoBehaviour {
 		transform.rotation = Quaternion.Euler(0, 0, angle);
 	}
 
-    public void startShotEffect() {
+    public void shotEffect() {
         explosion.Emit(explosionSize); 
     }
 }
