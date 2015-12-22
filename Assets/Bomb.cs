@@ -12,6 +12,8 @@ public class Bomb : MonoBehaviour {
 
     public int timeToLive = 10;
 
+    public GameObject explosion;
+
 	SurfaceManager terrainManager;
 
     private float fireTimer;
@@ -41,7 +43,8 @@ public class Bomb : MonoBehaviour {
 			damagable.blasted (transform.position, blastRadius, blastDamage, blastPush);
 		}
 		terrainManager.explodeAt (transform.position, groundRemoveRadius);
-		Destroy (gameObject);
+        GameObject.Instantiate(explosion, transform.position, Quaternion.identity);
+        Destroy (gameObject);
 	}
 
 

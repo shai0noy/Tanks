@@ -30,9 +30,8 @@ public class SurfaceManager : MonoBehaviour {
 	Vector2[] surfaceCurrnet;
 
 
-	int[] depthZs =         {50, 30, 10,    8,     6,     5,     3,    0,  0,  -3,      -5,      -6,   -8,   -10,  -30, -50};
-    float[] modEffect =   {0,   0,    0,   0.1f,  0.2f, 0.5f, 0.8f,  1, 1,  0.8f,   0.5f,    0.2f,  0.1f,   0,     0,     0 };
-	int[] depthHeightDeltas = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+	int[] depthZs =         {50, 30, 10,    8,     6,     5,     3,    1,  -1,  -3,      -5,      -6,   -8,   -10,  -30, -50};
+    float[] modEffect =   {0,   0,    0,   0.1f,  0.2f, 0.5f, 0.8f,    1,  1,  0.8f,   0.5f,    0.2f,  0.1f,   0,     0,     0 };
 
     int depth;
     float aspectRatio;
@@ -101,7 +100,7 @@ public class SurfaceManager : MonoBehaviour {
 			for (int iDepth = 0; iDepth < depthSteps; iDepth++) {
 				iVert = baseVert + iDepth;
 				Vector2 suracePoint = surfaceCurrnet[iSurface] * modEffect[iDepth] + surfaceOriginal[iSurface] * (1-modEffect[iDepth]);
-				verts[iVert] = new Vector3(suracePoint.x * (1 + surfaceSpreadPerDepthUnit * depthZs[iDepth]), suracePoint.y + depthHeightDeltas[iDepth], depthZs[iDepth]);
+				verts[iVert] = new Vector3(suracePoint.x * (1 + surfaceSpreadPerDepthUnit * depthZs[iDepth]), suracePoint.y, depthZs[iDepth]);
                 uv[iVert] = new Vector2(verts[iVert].x, verts[iVert].z);
 			}
 		}
@@ -143,6 +142,21 @@ public class SurfaceManager : MonoBehaviour {
 		MeshRenderer renderer = GetComponent<MeshRenderer>();
         renderer.material.SetTexture(1, overlayTexture);
 	}
-	
+
+
+    public float getMinViewAngleFromEdge(Vector3 targetPos) {
+        float surfaceXStep = surfaceWidth / numSurfacePoints;
+        float surfaceXStart = -surfaceWidth / 2;
+
+        float relTarX = (targetPos.x - surfaceXStart) / surfaceXStep;
+        int tarXIndex = (int)relTarX;
+        float tarXDelta = relTarX - tarXIndex;
+
+        int len = depthZs.Length;
+        int z = depthZs[4];
+        float y = Mathf.Lerp(surfaceOriginal[tarXIndex].y, surfaceOriginal[tarXIndex + 1].y, tarXDelta);
+        return Mathf.Rad2Deg * Mathf.Atan((y - targetPos.y) / (z - targetPos.z));
+    }
 
 }
+

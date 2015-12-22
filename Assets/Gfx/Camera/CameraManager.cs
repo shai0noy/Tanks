@@ -7,17 +7,17 @@ public class CameraManager : MonoBehaviour {
     public GameObject mainTarget;
     public GameObject secondaryTarget = null;
 
+    public float targetDistance = 40;
     public float lookSpeed = 1.5f;
     public float moveSpeed = 0.5f;
     public float zoomSpeed = 1f;
     public float zoomPerVelocity = 1;
     public float baseFOV = 40;
     public float maxFOV = 90;
-    public float defaultY = 20;
+    public float minAngle = 30;
 
     private Camera thisCamera;
-
-    private bool targetBlocked = false;
+    private SurfaceManager surfaceManager;
 
     public void setDefaultTarget(GameObject go) {
         mainTarget = go;
@@ -27,11 +27,12 @@ public class CameraManager : MonoBehaviour {
     // Use this to find objects
     void Awake() {
         thisCamera = GetComponent<Camera>();
+        surfaceManager = GameObject.FindObjectOfType<SurfaceManager>();
     }
 
 	// Use this for initialization
 	void Start () {
-        transform.position.Set(transform.position.x, defaultY, transform.position.z);
+    //transform.position.Set(transform.position.x, 50, transform.position.z);
 	}
 	
 	// Update is called once per frame
@@ -39,13 +40,10 @@ public class CameraManager : MonoBehaviour {
         if (mainTarget == null) {
             mainTarget = defaultTarget;
         }
-        RaycastHit hit;
-        if (!Physics.Raycast(transform.position, mainTarget.transform.position, out hit))
-            Debug.LogWarning("noHit");
-        targetBlocked = hit.transform != mainTarget.transform;
-        Debug.LogWarning(hit.transform);
+        float ang = surfaceManager.getMinViewAngleFromEdge(mainTarget.transform.position) + 5; // +5 in order to be slightly above the minimal visibility angle
+        ang = Mathf.Max(ang, minAngle);
+        lerpInfront(mainTarget.transform.position, ang);
         lerpLookAt(mainTarget.transform.position);
-        lerpInfront(mainTarget.transform.position);
         lerpZoom(mainTarget.GetComponent<Rigidbody2D>().velocity);
 	}
 
@@ -55,19 +53,10 @@ public class CameraManager : MonoBehaviour {
         transform.rotation = Quaternion.Lerp(transform.rotation, newRot, lookSpeed * Time.deltaTime);
     }
 
-    private void lerpInfront(Vector3 target) {
-        Vector3 targetPos = transform.position;
-        targetPos.x = target.x;
-        targetPos.y = targetBlocked ? 500f : defaultY;
+    private void lerpInfront(Vector3 target, float viewAngle) {
+        Vector3 targetPos = target - Quaternion.AngleAxis(viewAngle, Vector3.right) * Vector3.forward * targetDistance;
         transform.position = Vector3.Lerp(transform.position, targetPos, moveSpeed * Time.deltaTime);
     }
-
-    /*
-    private void lerpAbove() {
-        Vector3 targetPos = transform.position;
-        targetPos.y = targetBlocked ? 500f : defaultY;
-        transform.position = Vector3.Lerp(transform.position, targetPos, moveSpeed * 2 * Time.deltaTime);
-    }*/
 
     private void lerpZoom(Vector2 targetVelocity)
     {
