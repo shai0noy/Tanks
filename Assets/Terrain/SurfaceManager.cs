@@ -148,7 +148,7 @@ public class SurfaceManager : MonoBehaviour {
         float surfaceXStep = surfaceWidth / numSurfacePoints;
         float surfaceXStart = -surfaceWidth / 2;
 
-        float relTarX = (targetPos.x - surfaceXStart) / surfaceXStep;
+        float relTarX = Mathf.Clamp((targetPos.x - surfaceXStart) / surfaceXStep, 0, surfaceWidth);
         int tarXIndex = (int)relTarX;
         float tarXDelta = relTarX - tarXIndex;
 

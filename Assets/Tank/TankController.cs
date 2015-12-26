@@ -6,6 +6,8 @@ public class TankController : TakesDamage {
 	public TreadManager treads;
 	public CannonManager cannon;
 
+    public AudioSource cannonFireAudio;
+
 	public float aimSpeed = 1;
 
 	public float baseEnginePower = 200;
@@ -15,12 +17,12 @@ public class TankController : TakesDamage {
 	public float armor;
 
 	public float baseMaxShotPower = 20;
-	public float maxShotPower;
+	public float maxShotPower = 20;
 	private float _shotPower = 10;
 	public float shotPower {
 		get { return _shotPower; }
 		set { 
-			_shotPower = Mathf.Clamp (value, 0, maxShotPower);
+			_shotPower = Mathf.Clamp(value, 0, maxShotPower);
 		}
 	}
 
@@ -43,6 +45,11 @@ public class TankController : TakesDamage {
 
     private CameraManager camManager;
 
+    private Airborne airborneManager;
+    private Rigidbody2D rigidBody;
+
+    private bool alreadyShot = false;
+
 	private enum SmokeStrength {
 		none,
 		idle,
@@ -57,14 +64,14 @@ public class TankController : TakesDamage {
 
 	public float mass
 	{
-		get { return GetComponent<Rigidbody2D>().mass; }
-		set { GetComponent<Rigidbody2D>().mass = value; }
+		get { return rigidBody.mass; }
+		set { rigidBody.mass = value; }
 	}
 
 	public float centerOfMassHeight 
 	{
-		get { return GetComponent<Rigidbody2D>().centerOfMass.y; }
-		set { GetComponent<Rigidbody2D>().centerOfMass = new Vector2(0, value); }
+		get { return rigidBody.centerOfMass.y; }
+		set { rigidBody.centerOfMass = new Vector2(0, value); }
 	}
 
 
@@ -73,6 +80,8 @@ public class TankController : TakesDamage {
         private set;
     }
 
+
+    private GameManager gameManager;
 
 	public TankController() {
 		enginePower = baseEnginePower;
@@ -102,6 +111,8 @@ public class TankController : TakesDamage {
 		enginePower -= damage / 3;
 		shotPower -= damage / 3;
 		fuelTankIntegrity -= damage / 3;
+
+        //gameManager.updateGui();
 	}
 
 
@@ -121,30 +132,39 @@ public class TankController : TakesDamage {
 	/* --- Behaviour - Active --- */
 
 	private void shoot() {
+        if (alreadyShot)
+            return;
         Quaternion aimRotation = Quaternion.Euler (0,0,aimAngle);
         Bomb missile = Instantiate(missiles[selectedMissileIndex], transform.position + aimRotation * Vector3.up * 2f, aimRotation) as Bomb;
 		missile.GetComponent<Rigidbody2D>().AddRelativeForce(_shotPower * Vector2.up, ForceMode2D.Impulse);
+        cannonFireAudio.Play();
         cannon.shotEffect();
         // Set camera to folloe missile.
         camManager.mainTarget = missile.gameObject;
+        alreadyShot = true;
+        gameManager.tankFired(this);
 	}
     public void Activate() {
         isActive = true;
-        
+        alreadyShot = false;
     }
     public void Deactivate() {
           isActive = false;
           setSmoke(SmokeStrength.none); //Maybe idle smoke?
     }
 
-
-
-
+    internal void groundedChanged(bool touchingGround) {
+        this.airborneManager.inAir = !touchingGround;
+    }
+    
     // Use this to find objects
     void Awake() {
         idleSmokeEmitter = transform.Find("IdleSmoke").GetComponent<ParticleEmitter>();
         driveSmokeEmitter = transform.Find("DrivingSmoke").GetComponent<ParticleEmitter>();
+        airborneManager = GetComponent<Airborne>();
         camManager = Camera.main.GetComponent<CameraManager>();
+        gameManager = GameObject.FindObjectOfType<GameManager>();
+        rigidBody = GetComponent<Rigidbody2D>();
     }
 
 	// Use this for initialization
@@ -154,30 +174,38 @@ public class TankController : TakesDamage {
 
 
 	void FixedUpdate () {
-        if (isActive) {
-		    /* Drive */
+        if (! isActive)
+            return;
 
-		    float power = Input.GetAxis ("Horizontal") * enginePower;
-		    if (treads.isGrounded) {
-			    GetComponent<Rigidbody2D>().AddForce (transform.right * power);
-		    }
-		    if (power == 0) {
-			    setSmoke(SmokeStrength.idle);
-		    } else {
-			    setSmoke(SmokeStrength.drive);
-		    }
+		/* Drive */
+		float power = Input.GetAxis ("Horizontal") * enginePower;
+		if (treads.isGrounded) {
+			GetComponent<Rigidbody2D>().AddForce (transform.right * power);
+		}
+		if (power == 0) {
+			setSmoke(SmokeStrength.idle);
+		} else {
+			setSmoke(SmokeStrength.drive);
+		}
 
-		    /* Aim */
+		/* Aim */
 
-		    float aimDelta = Input.GetAxis ("Vertical") * aimSpeed;
-		    aimAngle = Mathf.Clamp(aimAngle + aimDelta, -90, 90);
+		float aimDelta = Input.GetAxis ("Vertical") * aimSpeed;
+		aimAngle = Mathf.Clamp(aimAngle + aimDelta, -90, 90);
 
-		    /* Shoot */
-
-		    if (Input.GetKeyDown("space")) {
-			    shoot();
-		    }
+        if (Input.GetKey("=")) {
+            shotPower += 1;
         }
+        if (Input.GetKey("-")) {
+            shotPower -= 1;
+        }
+
+		/* Shoot */
+
+		if (Input.GetKeyDown("space")) {
+			shoot();
+		}
+        
 	}
 
 
@@ -185,5 +213,4 @@ public class TankController : TakesDamage {
 	void Update () {
 	
 	}
-
 }

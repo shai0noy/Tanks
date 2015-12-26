@@ -16,21 +16,16 @@ public class Bomb : MonoBehaviour {
 
 	SurfaceManager terrainManager;
 
-    private float fireTimer;
-
 	// Use this for initialization
-	void Awake () {
+	void Start () {
 		GameObject terrain = GameObject.Find("Terrain");
 		terrainManager = terrain.GetComponent<SurfaceManager>();
-        fireTimer = Time.time;
+        Destroy(gameObject, timeToLive);
 	}
 	
 	// Update is called once per frame
 	void Update () {
-        // Check if passed TTL
-        if (Time.time > fireTimer + timeToLive) {
-            explode();
-        }
+
 	}
 	
 	void hit(TakesDamage damagable) {
