@@ -64,6 +64,10 @@ public class CameraManager : MonoBehaviour {
         if (userControl) {
             mainTarget = userLookTarget;
             userLookTarget.transform.Translate(userMove);
+            userLookTarget.SetActive(true);
+        } else {
+            userLookTarget.transform.position = mainTarget.transform.position;
+            userLookTarget.SetActive(false);
         }
     }
 

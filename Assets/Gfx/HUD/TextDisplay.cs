@@ -8,10 +8,9 @@ public class TextDisplay : MonoBehaviour {
     private object value;
     private string format;
 
-	void Start () {
+	void Awake () {
         textField = GetComponent<Text>();
         format = textField.text;
-        set("-");
 	}
 
     public void set(params object[] args) {

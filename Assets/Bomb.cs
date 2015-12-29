@@ -17,12 +17,20 @@ public class Bomb : MonoBehaviour {
 	SurfaceManager terrainManager;
 
 	// Use this for initialization
-	void Start () {
+	void Awake () {
 		GameObject terrain = GameObject.Find("Terrain");
-		terrainManager = terrain.GetComponent<SurfaceManager>();
-        Destroy(gameObject, timeToLive);
+		terrainManager = terrain.GetComponent<SurfaceManager>(); 
 	}
-	
+
+    void Start() {
+        Destroy(gameObject, timeToLive);
+        if (terrainManager.surfaceYAt(transform.position.x) > transform.position.y) {
+            // bomb is below surface
+            explode();
+            Debug.LogWarning("bomb clipped");
+        }
+    }
+
 	// Update is called once per frame
 	void Update () {
 

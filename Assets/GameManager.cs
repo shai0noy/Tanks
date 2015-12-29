@@ -3,12 +3,44 @@ using System.Collections;
 using System;
 
 public class GameManager : MonoBehaviour {
+    private class TurnTimedCaller : IEnumerator {
+        private bool ended = false;
+        private Action callback;
+        private IEnumerator enumer;
+        public TurnTimedCaller(Action onEndedCallback, float time) {
+            callback = onEndedCallback;
+            enumer = timer(time);
+        }
 
+        public void end() {
+            ended = true;
+        }
 
-    public float EndTurnDuration = 3f;
+        private IEnumerator timer(float time) {
+            yield return new WaitForSeconds(time);
+            if (! ended) {
+                callback();
+            }
+        }
+
+        public object Current {
+            get { return enumer.Current; }
+        }
+        public bool MoveNext() {
+            return enumer.MoveNext();
+        }
+        public void Reset() {
+            enumer.Reset();
+        }
+    }
+    private TurnTimedCaller startTimer(Action onEndedCallback, float time) {
+        TurnTimedCaller t = new TurnTimedCaller(onEndedCallback, time);
+        StartCoroutine(t);
+        return t;
+    }
+
+    public float EndturnDuration = 3f;
     public float TurnDuration = 15f;
-
-    private float turnStart;
 
     private SurfaceManager surfaceManager;
     private CameraManager camManager;
@@ -25,7 +57,10 @@ public class GameManager : MonoBehaviour {
     public float wind = 10;
     private float windDerivative = 0;
 
-    private int _activeTankId;
+
+    private TurnTimedCaller _curTurnTimer = null;
+
+    private int _activeTankId = -1;
     
     public int activeTankId {
         get {
@@ -39,16 +74,24 @@ public class GameManager : MonoBehaviour {
     }
     public TankController activeTank {
         get {
+            if (_activeTankId == -1)
+                return null;
             return tanks[_activeTankId];
         }
         set {
-            activeTankId = Array.IndexOf(tanks, value);
+            if (value != null) {
+                activeTankId = Array.IndexOf(tanks, value);
+            } else {
+                activeTankId = -1;
+            }
         }
     }
     public void activateNextTank() {
         activeTankId = (activeTankId + 1) % numTanks; 
     }
-
+    public void activateFirstTank() {
+        activeTankId = 0;
+    }
     private void _onActiveTankChanged(TankController activeTank, TankController prevActiveTank) {
         if (prevActiveTank != null)
             prevActiveTank.Deactivate();
@@ -57,31 +100,40 @@ public class GameManager : MonoBehaviour {
         updateGui();
     }
 
+
     internal void tankFired(TankController shootingTank) {
-        //endTurn();
+        stopMainTurn();
     }
 
-
+    private void startFirstTurn() {
+        startTurn();
+        activateFirstTank();
+    }
     private void startNextTurn() {
         activateNextTank();
+        startTurn();
     }
-
-
-    private IEnumerator GameLoop() {
-        while (true) { //TODO: check winner and exit loop
-            waitForTurnEnd();
-            waitForEndturnEnd();
-            activateNextTank();
-        }
+    private void startTurn() {
+        _curTurnTimer =  startTimer(stopCompleteTurn, TurnDuration);
     }
-
-    private IEnumerator waitForTurnEnd() {
-        yield return new WaitForSeconds(TurnDuration - EndTurnDuration);
+    private void stopMainTurn() {
+        _curTurnTimer.end();
+        activeTank.DisableFire();
+        startEndturn();
     }
-    private IEnumerator waitForEndturnEnd() {
-        yield return new WaitForSeconds(EndTurnDuration);
+    private void startEndturn() {
+        _curTurnTimer = startTimer(stopEndturn, EndturnDuration);
     }
-
+    private void stopEndturn()  {
+        _curTurnTimer.end();
+        activeTank.Deactivate();
+        stopCompleteTurn();
+        
+    }
+    private void stopCompleteTurn() {
+        _curTurnTimer.end();
+        startNextTurn();
+    }
 
     // Use this to find objects
     void Awake() {
@@ -90,22 +142,16 @@ public class GameManager : MonoBehaviour {
         dayManager = GetComponentInChildren<DayManager>();
     }
 
+
 	// Use this for initialization
 	void Start () {
-        while (true) {
-            IEnumerator e = waitForEndturnEnd();
-            Debug.LogWarning(e.MoveNext());
-            Debug.LogWarning(e.Current);
-        }
-
         tanks = new TankController[numTanks];
         for (int i = 0; i < numTanks; i++) {
             GameObject newTank = GameObject.Instantiate(tankPrefab, surfaceManager.transform.position 
                 + (30 * i * Vector3.left) + (5 * Vector3.up)  , Quaternion.identity) as GameObject;
             tanks[i] = newTank.GetComponent<TankController>();
         }
-        activeTankId = 0;
-        //TODO: Above line causes formating errors end stop[s this method execution!
+        startFirstTurn();
 	}
 	
 	// Update is called once per frame
@@ -123,11 +169,6 @@ public class GameManager : MonoBehaviour {
 
             wind += windDerivative - wind / 600;
             wind = Mathf.Clamp(wind, -maxWind, maxWind);
-
-            if (turnStart != 0 && Time.time >= turnStart) {
-                startNextTurn();
-            }
-
     }
 
 

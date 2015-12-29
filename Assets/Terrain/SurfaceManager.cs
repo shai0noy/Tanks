@@ -44,7 +44,7 @@ public class SurfaceManager : MonoBehaviour {
 		buildSurface();
 		buildMesh();	
 	}
-	
+
 
 	public void explodeAt(Vector2 point, float radius) {
 		for (int i = 0; i < numSurfacePoints; i++) {
@@ -144,19 +144,25 @@ public class SurfaceManager : MonoBehaviour {
 	}
 
 
-    public float getMinViewAngleFromEdge(Vector3 targetPos) {
+    public float surfaceYAt(float x) {
         float surfaceXStep = surfaceWidth / numSurfacePoints;
         float surfaceXStart = -surfaceWidth / 2;
 
-        float relTarX = Mathf.Clamp((targetPos.x - surfaceXStart) / surfaceXStep, 0, surfaceWidth);
+        float relTarX = Mathf.Clamp((x - surfaceXStart) / surfaceXStep, 0, surfaceWidth);
         int tarXIndex = (int)relTarX;
         float tarXDelta = relTarX - tarXIndex;
 
+        return Mathf.Lerp(surfaceOriginal[tarXIndex].y, surfaceOriginal[tarXIndex + 1].y, tarXDelta);
+    }
+
+
+    public float getMinViewAngleFromEdge(Vector3 targetPos) {
+        float y = surfaceYAt(targetPos.x);
         int len = depthZs.Length;
         int z = depthZs[4];
-        float y = Mathf.Lerp(surfaceOriginal[tarXIndex].y, surfaceOriginal[tarXIndex + 1].y, tarXDelta);
         return Mathf.Rad2Deg * Mathf.Atan((y - targetPos.y) / (z - targetPos.z));
     }
 
 }
+
 

@@ -48,7 +48,7 @@ public class TankController : TakesDamage {
     private Airborne airborneManager;
     private Rigidbody2D rigidBody;
 
-    private bool alreadyShot = false;
+    private bool canShoot = false;
 
 	private enum SmokeStrength {
 		none,
@@ -132,24 +132,28 @@ public class TankController : TakesDamage {
 	/* --- Behaviour - Active --- */
 
 	private void shoot() {
-        if (alreadyShot)
-            return;
-        Quaternion aimRotation = Quaternion.Euler (0,0,aimAngle);
-        Bomb missile = Instantiate(missiles[selectedMissileIndex], transform.position + aimRotation * Vector3.up * 2f, aimRotation) as Bomb;
-		missile.GetComponent<Rigidbody2D>().AddRelativeForce(_shotPower * Vector2.up, ForceMode2D.Impulse);
-        cannonFireAudio.Play();
-        cannon.shotEffect();
-        // Set camera to folloe missile.
-        camManager.mainTarget = missile.gameObject;
-        alreadyShot = true;
-        gameManager.tankFired(this);
+        if (canShoot) {
+            Quaternion aimRotation = Quaternion.Euler(0, 0, aimAngle);
+            Bomb missile = Instantiate(missiles[selectedMissileIndex], transform.position + aimRotation * Vector3.up * 2f, aimRotation) as Bomb;
+            missile.GetComponent<Rigidbody2D>().AddRelativeForce(_shotPower * Vector2.up, ForceMode2D.Impulse);
+            cannonFireAudio.Play();
+            cannon.shotEffect();
+            // Set camera to folloe missile.
+            camManager.mainTarget = missile.gameObject;
+            canShoot = false;
+            gameManager.tankFired(this);
+        }
 	}
     public void Activate() {
         isActive = true;
-        alreadyShot = false;
+        canShoot = true;
+    }
+    public void DisableFire() {
+        canShoot = false;
     }
     public void Deactivate() {
           isActive = false;
+          canShoot = false;
           setSmoke(SmokeStrength.none); //Maybe idle smoke?
     }
 
