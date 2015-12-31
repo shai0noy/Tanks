@@ -147,8 +147,7 @@ public class GameManager : MonoBehaviour {
 	void Start () {
         tanks = new TankController[numTanks];
         for (int i = 0; i < numTanks; i++) {
-            GameObject newTank = GameObject.Instantiate(tankPrefab, surfaceManager.transform.position 
-                + (30 * i * Vector3.left) + (5 * Vector3.up)  , Quaternion.identity) as GameObject;
+            GameObject newTank = GameObject.Instantiate(tankPrefab, (30 * i * Vector3.left) + (5 * Vector3.up)  , Quaternion.identity) as GameObject;
             tanks[i] = newTank.GetComponent<TankController>();
         }
         startFirstTurn();

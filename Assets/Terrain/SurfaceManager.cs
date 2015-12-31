@@ -21,7 +21,7 @@ public class SurfaceManager : MonoBehaviour {
     /// <summary>
     /// 0 to 1
     /// </summary>
-    private int surfaceZ = 50;
+    private int surfaceZ = 15;
     public float surfacePlaneRelativePos {
         get { return surfaceZ / depthResolution; }
         set { surfaceZ = (int) (value * depthResolution); }
@@ -46,7 +46,9 @@ public class SurfaceManager : MonoBehaviour {
     Vector2[] surfaceOriginal;
     Vector2[] surfaceCurrnet;
 
-    Vector3[] vertices_data;
+    Mesh mesh;
+
+     Vector3[] vertices_data;
     private class Arr2DMapper<T> {
         private T[] arr;
         public int lenX;
@@ -57,8 +59,8 @@ public class SurfaceManager : MonoBehaviour {
                 this.lenY = arr.Length / lenX;
         }
         public T this[int x, int y] {
-            get { return arr[x * lenX + y]; }
-            set { arr[x * lenX + y] = value; }
+            get {return arr[x * lenY + y]; }
+            set {arr[x * lenY + y] = value; }
         }
     }
     Arr2DMapper<Vector3> vertices;
@@ -84,13 +86,12 @@ public class SurfaceManager : MonoBehaviour {
         overlayTexture = new Texture2D(overlayResolution, (int)aspectRatio * overlayResolution);
 
         transform.localScale = new Vector3(mapWidth/surfaceResolution, mapHeight, mapDepth/depthResolution);
-        float zOffset = transform.TransformVector(0, 0, surfacePlaneRelativePos).z;
-        transform.position = new Vector3(mapWidth / 2, surfaceMinY, zOffset);
+        float zOffset = transform.TransformVector(0, 0, surfaceZ).z;
+        transform.position = new Vector3(- mapWidth / 2, -surfaceMinY, -zOffset);
 
         buildMesh();
         buildSurface();
     }
-
 
 
 
@@ -100,30 +101,46 @@ public class SurfaceManager : MonoBehaviour {
 
         localRadius.y *= groundRemovalEffect;
 
-        int startX = (int)(localPoint.x + localRadius.x);
+        int startX = (int)(localPoint.x - localRadius.x);
         int endX = Mathf.CeilToInt(localPoint.x + localRadius.x);
-        int startZ = (int)(localPoint.x + localRadius.x);
+        int startZ = (int)(localPoint.z - localRadius.z);
         int endZ = Mathf.CeilToInt(localPoint.z + localRadius.z);
-        
-        for (int x = startX; x < endX; x++) {
-            for (int z = startZ; x < endZ; z++) {
-                //Vector2 delta = localPoint - surfaceCurrnet[x];
-                //if (delta.magnitude < localRadius) { // need to check if inside ellipse
 
+        for (int x = startX; x < endX; x++) {
+            for (int z = startZ; z < endZ; z++) {
                 Vector3 delta = new Vector3(x, localPoint.y, z) - localPoint;
-                delta = Vector3.Cross(delta , localRadius);
-                float newYAtThisPoint = Mathf.Sqrt(1 - Mathf.Pow(delta.z, 2) - Mathf.Pow(delta.x, 2));
+                delta = new Vector3(delta.x / localRadius.x, 0, delta.z / localRadius.z);
+
+                float newYAtThisPoint = localPoint.y - (Mathf.Sqrt(1 - Mathf.Pow(delta.z, 2) - Mathf.Pow(delta.x, 2)) * localRadius.y);
 
                 if (newYAtThisPoint < vertices[x, z].y) {
-                    vertices[x,z].Set(x, newYAtThisPoint,z);
-                    //    }
+                    vertices[x,z] = new Vector3(x, newYAtThisPoint,z);
                 }
             }
         }
+        updateMeshVerts();
 
-        buildMesh(); //Should be more efficient
+
+        for (int x = startX; x < endX; x++) {
+            Vector3 delta = new Vector2(x - localPoint.x, 0);
+            delta = new Vector2(delta.x / localRadius.x, 0);
+
+            float newYAtThisPoint = localPoint.y - (Mathf.Sqrt(1 - Mathf.Pow(delta.x, 2)) * localRadius.y);
+
+            if (newYAtThisPoint < surfaceCurrnet[x].y) {
+                surfaceCurrnet[x] = new Vector2(x, newYAtThisPoint);
+            }
+        }
+        updateCollider();
     }
 
+
+    // Call this after editing vertices (!)
+    void updateMeshVerts(int[] triangles = null) {
+        mesh.vertices = vertices_data;
+        mesh.triangles = triangles == null ? mesh.triangles : triangles; //Update triangles if given
+        mesh.RecalculateNormals();
+    }
 
     void updateCollider() {
         EdgeCollider2D collider = GetComponent<EdgeCollider2D>();
@@ -160,7 +177,7 @@ public class SurfaceManager : MonoBehaviour {
         for (int x= 0; x < surfaceResolution; x++) {
             for (int z = 0; z < depthResolution; z++) {
                 float y = Mathf.PerlinNoise(perlinStart + x * perlinStep, perlinStart + z * perlinStep);
-                vertices[x, z] = new Vector3(x,y,z);
+                vertices[x, z] = new Vector3(x, y, z);
             }
         }
 
@@ -175,15 +192,16 @@ public class SurfaceManager : MonoBehaviour {
         int[] triangles = new int[numTriangles * 3];
 
         int iTriangle = 0;
-        for (int iSurface = 0; iSurface < surfaceResolution - 1; iSurface++) {
-            for (int iDepth = 0; iDepth < depthResolution - 1; iDepth++) {
+        for (int iDepth = 0; iDepth < depthResolution - 1; iDepth++) {
+             for (int iSurface = 0; iSurface < surfaceResolution - 1; iSurface++) {
+            
 
-                triangles[iTriangle + 0] = iSurface * depthResolution + iDepth;
-                triangles[iTriangle + 1] = (iSurface + 1) * depthResolution + iDepth;
+                triangles[iTriangle + 1] = iSurface * depthResolution + iDepth;
+                triangles[iTriangle + 0] = (iSurface + 1) * depthResolution + iDepth;
                 triangles[iTriangle + 2] = iSurface * depthResolution + (iDepth + 1);
 
-                triangles[iTriangle + 3] = (iSurface + 1) * depthResolution + (iDepth + 1);
-                triangles[iTriangle + 4] = iSurface * depthResolution + (iDepth + 1);
+                triangles[iTriangle + 4] = (iSurface + 1) * depthResolution + (iDepth + 1);
+                triangles[iTriangle + 3] = iSurface * depthResolution + (iDepth + 1);
                 triangles[iTriangle + 5] = (iSurface + 1) * depthResolution + iDepth;
 
                 iTriangle += 6;
@@ -192,16 +210,13 @@ public class SurfaceManager : MonoBehaviour {
 
         /* Set Mesh */
 
-        Mesh mesh = new Mesh();
-        mesh.vertices = vertices_data;
-        mesh.triangles = triangles;
-        mesh.RecalculateNormals();
-        mesh.uv = uv;
+        mesh = new Mesh();
 
+        updateMeshVerts(triangles);
+        mesh.uv = uv;
         MeshFilter meshFilter = GetComponent<MeshFilter>();
         meshFilter.mesh = mesh;
-
-
+        
         /* Set Texture */
         MeshRenderer renderer = GetComponent<MeshRenderer>();
         renderer.material.SetTexture(1, overlayTexture);
@@ -224,16 +239,20 @@ public class SurfaceManager : MonoBehaviour {
     }
 
 
-    public float getMinViewAngleFromEdge(Vector3 targetPos) {
-        /*
+    public float getMinViewAngleFromEdge(Vector2 targetPos) {
+        Vector3 localTarget = transform.InverseTransformPoint(targetPos);
+        int tarX = (int) localTarget.x;
+
+        if (tarX < 0 || tarX >= surfaceResolution)
+            return 0;
+
         float max = 0; 
-        targetLocalY = 
-        for (int z = surfaceZ; z < depthResolution; z++) {
-            max= Mathf.Max(max, (vertices[ - targetPos.y) / (z - targetPos.z))
+        float targetLocalY = localTarget.y;
+        for (int z = surfaceZ + 1; z < depthResolution; z++) {
+            max = Mathf.Max(max, (vertices[tarX, z].y - targetPos.y) / (z - localTarget.z));
         }
-        return Mathf.Rad2Deg * Mathf.Atan();
-         * */
-        return 0;
+        Debug.LogWarning(max);
+        return Mathf.Rad2Deg * Mathf.Atan(max * transform.localScale.y / transform.localScale.z);
     }
 
 }
