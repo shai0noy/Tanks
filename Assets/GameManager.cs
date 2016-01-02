@@ -7,8 +7,11 @@ public class GameManager : MonoBehaviour {
         private bool ended = false;
         private Action callback;
         private IEnumerator enumer;
+        private float endTime;
+
         public TurnTimedCaller(Action onEndedCallback, float time) {
             callback = onEndedCallback;
+            endTime = Time.time + time;
             enumer = timer(time);
         }
 
@@ -31,6 +34,11 @@ public class GameManager : MonoBehaviour {
         }
         public void Reset() {
             enumer.Reset();
+        }
+
+        // in seconds
+        public float timeLeft() {
+            return endTime - Time.time;
         }
     }
     private TurnTimedCaller startTimer(Action onEndedCallback, float time) {
@@ -58,7 +66,7 @@ public class GameManager : MonoBehaviour {
     private float windDerivative = 0;
 
 
-    private TurnTimedCaller _curTurnTimer = null;
+    private TurnTimedCaller curTurnTimer = null;
 
     private int _activeTankId = -1;
     
@@ -114,24 +122,24 @@ public class GameManager : MonoBehaviour {
         startTurn();
     }
     private void startTurn() {
-        _curTurnTimer =  startTimer(stopCompleteTurn, TurnDuration);
+        curTurnTimer =  startTimer(stopCompleteTurn, TurnDuration);
     }
     private void stopMainTurn() {
-        _curTurnTimer.end();
+        curTurnTimer.end();
         activeTank.DisableFire();
         startEndturn();
     }
     private void startEndturn() {
-        _curTurnTimer = startTimer(stopEndturn, EndturnDuration);
+        curTurnTimer = startTimer(stopEndturn, EndturnDuration);
     }
     private void stopEndturn()  {
-        _curTurnTimer.end();
+        curTurnTimer.end();
         activeTank.Deactivate();
         stopCompleteTurn();
         
     }
     private void stopCompleteTurn() {
-        _curTurnTimer.end();
+        curTurnTimer.end();
         startNextTurn();
     }
 
@@ -145,9 +153,13 @@ public class GameManager : MonoBehaviour {
 
 	// Use this for initialization
 	void Start () {
+        surfaceManager.buildTerrain(); // Make sure terrain is built (it may alrady be built)
+
         tanks = new TankController[numTanks];
         for (int i = 0; i < numTanks; i++) {
-            GameObject newTank = GameObject.Instantiate(tankPrefab, (30 * i * Vector3.left) + (5 * Vector3.up)  , Quaternion.identity) as GameObject;
+            float x = 30 * i;
+            float y = surfaceManager.surfaceYAt(x) + 10;
+            GameObject newTank = GameObject.Instantiate(tankPrefab,  new Vector3(x,y,0)  , Quaternion.identity) as GameObject;
             tanks[i] = newTank.GetComponent<TankController>();
         }
         startFirstTurn();
@@ -173,11 +185,20 @@ public class GameManager : MonoBehaviour {
 
     public void updateGui() {
         hud.life.set(activeTank.armor, activeTank.baseArmor);
+        hud.turnTime.setDisplayColor(activeTank.armor <= 15);
+
         hud.cannonAngle.set(activeTank.aimAngle);
         hud.cannonStrength.set(100 * activeTank.shotPower / activeTank.baseMaxShotPower);
 
         hud.wind.set(Mathf.Abs(wind), wind > 0 ? "<<" : ">>");
         hud.time.set(dayManager.getHour(), dayManager.getMinute());
+        if (curTurnTimer == null) {
+            hud.turnTime.set(0);
+        } else {
+            int time = Mathf.CeilToInt(curTurnTimer.timeLeft());
+            hud.turnTime.set(time);
+            hud.turnTime.setDisplayColor(time <= 5);
+        }
     }
 
 }

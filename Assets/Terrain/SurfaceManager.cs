@@ -6,13 +6,12 @@ using System.Collections;
 [RequireComponent(typeof(MeshRenderer))]
 [RequireComponent(typeof(EdgeCollider2D))]
 public class SurfaceManager : MonoBehaviour {
-    // This class creates a mesh with size of 1*1*1
-    // It's then sets the object's scale and position according to parameters
-    private Vector2 YZ(this Vector3 v) {
-        return new Vector2(v.y, v.z);
-    }
+
+    private bool built = false;
 
     public int overlayResolution = 1000;
+    private int undergorundTextureResolution = 500;
+    private int totalTextureResolution;
     private Texture2D overlayTexture;
     public Color InnerColor;
 
@@ -78,22 +77,35 @@ public class SurfaceManager : MonoBehaviour {
         return Vector3.Lerp(mid1, mid2, lerpValY);
     }
 
-
+     
     // Use this for initialization
     void Start() {
-  
-        float aspectRatio = mapDepth / mapWidth;
-        overlayTexture = new Texture2D(overlayResolution, (int)aspectRatio * overlayResolution);
+        buildTerrain();
+    }
 
-        transform.localScale = new Vector3(mapWidth/surfaceResolution, mapHeight, mapDepth/depthResolution);
+
+    public void buildTerrain() {
+        if (built)
+            return;
+        built = true;
+
+        float aspectRatio = mapDepth / mapWidth;
+        overlayTexture = new Texture2D(overlayResolution, (int)(aspectRatio * overlayResolution));
+
+        for (int i = 100; i < 200; i++) {
+            for (int j = 100; j < 200; j++) {
+                overlayTexture.SetPixel(i, j, InnerColor);
+            }
+        }
+        overlayTexture.Apply();
+
+        transform.localScale = new Vector3(mapWidth / surfaceResolution, mapHeight, mapDepth / depthResolution);
         float zOffset = transform.TransformVector(0, 0, surfaceZ).z;
         transform.position = new Vector3(- mapWidth / 2, -surfaceMinY, -zOffset);
 
         buildMesh();
         buildSurface();
     }
-
-
 
     public void explodeAt(Vector2 worldPoint2d, float radius) {
         Vector3 localPoint = transform.InverseTransformPoint(worldPoint2d.x, worldPoint2d.y, 0); // localPoint.z will therfore be surfaceZ
@@ -219,7 +231,7 @@ public class SurfaceManager : MonoBehaviour {
         
         /* Set Texture */
         MeshRenderer renderer = GetComponent<MeshRenderer>();
-        renderer.material.SetTexture(1, overlayTexture);
+        renderer.material.mainTexture = overlayTexture;
     }
 
 
@@ -228,14 +240,16 @@ public class SurfaceManager : MonoBehaviour {
         Vector3 local = transform.InverseTransformPoint(worldX, 0, worldZ);
         int xIndex = (int)local.x;
         float lerpVal = local.x - xIndex;
-        return Mathf.Lerp(surfaceOriginal[xIndex].y, surfaceOriginal[xIndex + 1].y, lerpVal);
+        float localY = Mathf.Lerp(surfaceOriginal[xIndex].y, surfaceOriginal[xIndex + 1].y, lerpVal);
+        return transform.TransformPoint(Vector3.up * localY).y;     
     }
 
     public float surfaceYAt(float worldX) {
         float localX = transform.InverseTransformPoint(worldX, 0, 0).x;
         int xIndex = (int) localX;
         float lerpVal = localX - xIndex;
-        return Mathf.Lerp(surfaceOriginal[xIndex].y, surfaceOriginal[xIndex + 1].y, lerpVal);
+        float localY = Mathf.Lerp(surfaceOriginal[xIndex].y, surfaceOriginal[xIndex + 1].y, lerpVal);
+        return transform.TransformPoint(Vector3.up * localY).y;     
     }
 
 
@@ -251,7 +265,6 @@ public class SurfaceManager : MonoBehaviour {
         for (int z = surfaceZ + 1; z < depthResolution; z++) {
             max = Mathf.Max(max, (vertices[tarX, z].y - targetPos.y) / (z - localTarget.z));
         }
-        Debug.LogWarning(max);
         return Mathf.Rad2Deg * Mathf.Atan(max * transform.localScale.y / transform.localScale.z);
     }
 

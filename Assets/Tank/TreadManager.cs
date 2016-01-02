@@ -3,7 +3,12 @@ using System.Collections;
 
 public class TreadManager : MonoBehaviour {
 
-	public bool isGrounded = false;
+    private int numContactPoints = 0;
+
+    public bool isGrounded;
+
+    public Collider2D leftEdge;
+    public Collider2D rightEdge;
 
 	private GameObject terrain;
     public TankController tank;
@@ -14,17 +19,21 @@ public class TreadManager : MonoBehaviour {
 	}
 
 	void OnTriggerEnter2D(Collider2D other) {
-		if (other.gameObject == terrain) {
-			isGrounded = true;
-            tank.groundedChanged(true);
-        }
-        
+        if (other.gameObject != terrain)
+            Debug.LogWarning(other.gameObject);
+        numContactPoints++;
+
+        isGrounded = numContactPoints > 0;
+        tank.groundedChanged(isGrounded); 
 	}
 
 	void OnTriggerExit2D(Collider2D other) {
-		if (other.gameObject == terrain) {
-			isGrounded = false;
-            tank.groundedChanged(false);
-		}
+        if (other.gameObject != terrain)
+            Debug.LogWarning(other.gameObject);
+        numContactPoints--;
+
+        isGrounded = numContactPoints > 0;
+        tank.groundedChanged(isGrounded);
 	}
+
 }

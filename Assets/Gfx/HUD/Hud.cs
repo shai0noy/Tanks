@@ -10,6 +10,7 @@ public class Hud : MonoBehaviour {
 
     public TextDisplay wind;
     public TextDisplay time;
+    public TextDisplay turnTime;
 
 	// Use this for initialization
 	void Start () {
@@ -19,6 +20,7 @@ public class Hud : MonoBehaviour {
 
         wind = GameObject.Find("Wind").GetComponent<TextDisplay>();
         time = GameObject.Find("Time").GetComponent<TextDisplay>();
+        turnTime = GameObject.Find("TurnTime").GetComponent<TextDisplay>();
 	}
 	
 	// Update is called once per frame

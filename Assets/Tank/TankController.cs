@@ -184,7 +184,7 @@ public class TankController : TakesDamage {
 		/* Drive */
 		float power = Input.GetAxis ("Horizontal") * enginePower;
 		if (treads.isGrounded) {
-			GetComponent<Rigidbody2D>().AddForce (transform.right * power);
+			GetComponent<Rigidbody2D>().AddForce(transform.right * power);
 		}
 		if (power == 0) {
 			setSmoke(SmokeStrength.idle);
